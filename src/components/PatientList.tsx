@@ -1,20 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
-import { Search, Filter, Plus, Edit, Trash2, FileText, AlertTriangle } from 'lucide-react';
+import { Search, Filter, Plus, Edit, Trash2, FileText, AlertTriangle, Eye } from 'lucide-react';
 import NewPatientForm, { PatientData } from './NewPatientForm';
-import { getPatients, createPatient } from '../services/patientService';
+import PatientDetail from './PatientDetail';
+import { getPatients, createPatient, deletePatient, updatePatient } from '../services/patientService';
 import { getCarePlanByMonth, getCarePlansByPatient } from '../services/carePlanService';
 import { useAuth } from '../contexts/AuthContext';
 import { DEMO_MODE } from '../lib/supabase';
 
-const PatientList: React.FC = () => {
+interface PatientListProps {
+  onCreatePlan?: (patientId: string) => void;
+}
+
+const PatientList: React.FC<PatientListProps> = ({ onCreatePlan }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [showNewPatientForm, setShowNewPatientForm] = useState(false);
   const [patients, setPatients] = useState<any[]>([]);
   const [patientPlans, setPatientPlans] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
+  const [sortField, setSortField] = useState('name');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+  const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
+  const [showPatientDetail, setShowPatientDetail] = useState(false);
+  const [editingPatient, setEditingPatient] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   
   const { user } = useAuth();
   
@@ -24,49 +37,49 @@ const PatientList: React.FC = () => {
   const currentYear = currentDate.getFullYear();
   
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        // 患者データを取得
-        const patientsData = await getPatients();
-        setPatients(patientsData);
-        
-        // 各患者の今月の計画書を確認
-        const plansData: Record<string, any> = {};
-        
-        for (const patient of patientsData) {
-          const plan = await getCarePlanByMonth(patient.id, currentMonth, currentYear);
-          if (plan) {
-            plansData[patient.id] = {
-              lastUpdated: new Date(plan.updated_at).toLocaleDateString('ja-JP'),
-              month: currentMonth,
-              year: currentYear
-            };
-          } else {
-            // 最新の計画書を探す
-            const latestPlans = await getCarePlansByPatient(patient.id);
-            
-            if (latestPlans && latestPlans.length > 0) {
-              const latestPlan = latestPlans[0];
-              plansData[patient.id] = {
-                lastUpdated: new Date(latestPlan.updated_at).toLocaleDateString('ja-JP'),
-                month: latestPlan.month,
-                year: latestPlan.year
-              };
-            }
-          }
-        }
-        
-        setPatientPlans(plansData);
-        setLoading(false);
-      } catch (error) {
-        console.error('データ取得エラー:', error);
-        setLoading(false);
-      }
-    };
-    
     fetchData();
   }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      // 患者データを取得
+      const patientsData = await getPatients();
+      setPatients(patientsData);
+      
+      // 各患者の今月の計画書を確認
+      const plansData: Record<string, any> = {};
+      
+      for (const patient of patientsData) {
+        const plan = await getCarePlanByMonth(patient.id, currentMonth, currentYear);
+        if (plan) {
+          plansData[patient.id] = {
+            lastUpdated: new Date(plan.updated_at).toLocaleDateString('ja-JP'),
+            month: currentMonth,
+            year: currentYear
+          };
+        } else {
+          // 最新の計画書を探す
+          const latestPlans = await getCarePlansByPatient(patient.id);
+          
+          if (latestPlans && latestPlans.length > 0) {
+            const latestPlan = latestPlans[0];
+            plansData[patient.id] = {
+              lastUpdated: new Date(latestPlan.updated_at).toLocaleDateString('ja-JP'),
+              month: latestPlan.month,
+              year: latestPlan.year
+            };
+          }
+        }
+      }
+      
+      setPatientPlans(plansData);
+      setLoading(false);
+    } catch (error) {
+      console.error('データ取得エラー:', error);
+      setLoading(false);
+    }
+  };
 
   // 今月の計画書が必要かどうかを判定する関数
   const needsMonthlyPlan = (patientId: string) => {
@@ -90,6 +103,55 @@ const PatientList: React.FC = () => {
     }
   };
 
+  // 患者を編集する関数
+  const handleEditPatient = async (patientId: string, patientData: PatientData) => {
+    if (!user) return;
+    
+    try {
+      const updatedPatient = await updatePatient(patientId, patientData);
+      if (updatedPatient) {
+        setPatients(patients.map(p => p.id === patientId ? updatedPatient : p));
+        setEditingPatient(null);
+      }
+    } catch (error) {
+      console.error('患者編集エラー:', error);
+    }
+  };
+
+  // 患者を削除する関数
+  const handleDeletePatient = async (patientId: string) => {
+    try {
+      const result = await deletePatient(patientId);
+      if (result.success) {
+        setPatients(patients.filter(p => p.id !== patientId));
+        setShowDeleteConfirm(null);
+      } else {
+        console.error('患者削除エラー:', result.error);
+      }
+    } catch (error) {
+      console.error('患者削除処理エラー:', error);
+    }
+  };
+
+  // ソート関数
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  // 計画書作成ページへ移動
+  const handleCreatePlan = (patientId: string) => {
+    if (onCreatePlan) {
+      onCreatePlan(patientId);
+    } else {
+      console.log('計画書作成:', patientId);
+    }
+  };
+
   // フィルタリングされた患者リスト
   let filteredPatients = patients.filter(patient => 
     patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -106,6 +168,34 @@ const PatientList: React.FC = () => {
       patientPlans[patient.id].year === currentYear
     );
   }
+
+  // ソート
+  filteredPatients.sort((a, b) => {
+    let comparison = 0;
+    
+    if (sortField === 'name') {
+      comparison = a.name.localeCompare(b.name, 'ja');
+    } else if (sortField === 'age') {
+      comparison = a.age - b.age;
+    } else if (sortField === 'updated') {
+      const aDate = patientPlans[a.id] ? new Date(patientPlans[a.id].lastUpdated) : new Date(0);
+      const bDate = patientPlans[b.id] ? new Date(patientPlans[b.id].lastUpdated) : new Date(0);
+      comparison = aDate.getTime() - bDate.getTime();
+    }
+    
+    return sortDirection === 'asc' ? comparison : -comparison;
+  });
+
+  // ページネーション
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredPatients.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredPatients.length / itemsPerPage);
+
+  // ページ変更ハンドラ
+  const handlePageChange = (pageNumber: number) => {
+    setCurrentPage(pageNumber);
+  };
 
   return (
     <div className="space-y-6">
@@ -184,17 +274,44 @@ const PatientList: React.FC = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      患者名
+                    <th 
+                      scope="col" 
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                      onClick={() => handleSort('name')}
+                    >
+                      <div className="flex items-center">
+                        患者名
+                        {sortField === 'name' && (
+                          <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                        )}
+                      </div>
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      年齢/性別
+                    <th 
+                      scope="col" 
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                      onClick={() => handleSort('age')}
+                    >
+                      <div className="flex items-center">
+                        年齢/性別
+                        {sortField === 'age' && (
+                          <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                        )}
+                      </div>
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       住所
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      計画書最終更新日
+                    <th 
+                      scope="col" 
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                      onClick={() => handleSort('updated')}
+                    >
+                      <div className="flex items-center">
+                        計画書最終更新日
+                        {sortField === 'updated' && (
+                          <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                        )}
+                      </div>
                     </th>
                     <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       操作
@@ -202,8 +319,8 @@ const PatientList: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredPatients.length > 0 ? (
-                    filteredPatients.map((patient) => (
+                  {currentItems.length > 0 ? (
+                    currentItems.map((patient) => (
                       <tr key={patient.id} className={needsMonthlyPlan(patient.id) ? "bg-red-50 hover:bg-red-100" : "hover:bg-gray-50"}>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="font-medium text-gray-900">{patient.name}</div>
@@ -237,13 +354,39 @@ const PatientList: React.FC = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex justify-end space-x-2">
-                            <Button variant="ghost" size="sm" className="text-blue-600">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-blue-600"
+                              onClick={() => {
+                                setSelectedPatient(patient.id);
+                                setShowPatientDetail(true);
+                              }}
+                            >
+                              <Eye size={18} />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-blue-600"
+                              onClick={() => handleCreatePlan(patient.id)}
+                            >
                               <FileText size={18} />
                             </Button>
-                            <Button variant="ghost" size="sm" className="text-gray-600">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-gray-600"
+                              onClick={() => setEditingPatient(patient.id)}
+                            >
                               <Edit size={18} />
                             </Button>
-                            <Button variant="ghost" size="sm" className="text-red-600">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-red-600"
+                              onClick={() => setShowDeleteConfirm(patient.id)}
+                            >
                               <Trash2 size={18} />
                             </Button>
                           </div>
@@ -266,31 +409,53 @@ const PatientList: React.FC = () => {
             </div>
             
             {/* ページネーション */}
-            {filteredPatients.length > 0 && (
+            {filteredPatients.length > itemsPerPage && (
               <div className="bg-gray-50 px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
                 <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm text-gray-700">
-                      全 <span className="font-medium">{patients.length}</span> 件中 <span className="font-medium">1</span> から <span className="font-medium">{filteredPatients.length}</span> 件を表示
+                      全 <span className="font-medium">{filteredPatients.length}</span> 件中 
+                      <span className="font-medium"> {indexOfFirstItem + 1}</span> から 
+                      <span className="font-medium"> {Math.min(indexOfLastItem, filteredPatients.length)}</span> 件を表示
                     </p>
                   </div>
                   <div>
                     <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                      <a href="#" className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                      <button
+                        onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                        disabled={currentPage === 1}
+                        className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                      >
                         <span className="sr-only">前へ</span>
                         <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                           <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
-                      </a>
-                      <a href="#" className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-blue-50 text-sm font-medium text-blue-600 hover:bg-blue-100">
-                        1
-                      </a>
-                      <a href="#" className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                      </button>
+                      
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                        <button
+                          key={page}
+                          onClick={() => handlePageChange(page)}
+                          className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium ${
+                            currentPage === page
+                              ? 'bg-blue-50 text-blue-600'
+                              : 'bg-white text-gray-700 hover:bg-gray-50'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      ))}
+                      
+                      <button
+                        onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                        disabled={currentPage === totalPages}
+                        className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                      >
                         <span className="sr-only">次へ</span>
                         <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                           <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
                         </svg>
-                      </a>
+                      </button>
                     </nav>
                   </div>
                 </div>
@@ -306,6 +471,58 @@ const PatientList: React.FC = () => {
           onClose={() => setShowNewPatientForm(false)} 
           onSave={handleAddPatient}
         />
+      )}
+
+      {/* 患者編集フォーム */}
+      {editingPatient && (
+        <NewPatientForm 
+          patientId={editingPatient}
+          onClose={() => setEditingPatient(null)} 
+          onSave={(data) => handleEditPatient(editingPatient, data)}
+        />
+      )}
+
+      {/* 患者詳細表示 */}
+      {showPatientDetail && selectedPatient && (
+        <PatientDetail 
+          patientId={selectedPatient}
+          onClose={() => {
+            setShowPatientDetail(false);
+            setSelectedPatient(null);
+          }}
+          onEdit={(id) => {
+            setShowPatientDetail(false);
+            setEditingPatient(id);
+          }}
+          onCreatePlan={handleCreatePlan}
+        />
+      )}
+
+      {/* 削除確認ダイアログ */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md p-6">
+            <h2 className="text-xl font-bold mb-4">患者データの削除</h2>
+            <p className="mb-6">
+              この患者データを削除してもよろしいですか？この操作は取り消せません。
+            </p>
+            <div className="flex justify-end space-x-3">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowDeleteConfirm(null)}
+              >
+                キャンセル
+              </Button>
+              <Button 
+                variant="primary" 
+                className="bg-red-600 hover:bg-red-700 text-white"
+                onClick={() => handleDeletePatient(showDeleteConfirm)}
+              >
+                削除する
+              </Button>
+            </div>
+          </Card>
+        </div>
       )}
     </div>
   );

@@ -2,11 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { ChevronRight, ChevronLeft, Save, FileText, Wand2 } from 'lucide-react';
-import { getPatients } from '../services/patientService';
+import { getPatients, getPatientById } from '../services/patientService';
 import { createCarePlan, updateCarePlan, CarePlan } from '../services/carePlanService';
 import { useAuth } from '../contexts/AuthContext';
 
-const PlanCreation: React.FC = () => {
+interface PlanCreationProps {
+  patientId?: string;
+}
+
+const PlanCreation: React.FC<PlanCreationProps> = ({ patientId }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [visitType, setVisitType] = useState<string>('both');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -34,11 +38,36 @@ const PlanCreation: React.FC = () => {
   const totalSteps = 5;
 
   useEffect(() => {
-    const fetchPatients = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
+        // 患者データを取得
         const patientsData = await getPatients();
         setPatients(patientsData);
+        
+        // patientIdが指定されている場合、その患者を選択状態にする
+        if (patientId) {
+          setSelectedPatient(patientId);
+          
+          // 患者の詳細情報を取得して健康状態などの初期値を設定
+          try {
+            const patientDetail = await getPatientById(patientId);
+            if (patientDetail) {
+              // 患者情報から関連するフィールドを初期設定
+              setHealthStatus(patientDetail.medical_history || '');
+              setDoctorInstructions(patientDetail.primary_doctor ? `${patientDetail.primary_doctor}からの指示` : '');
+              
+              // 要介護度に基づいてADL初期値を設定
+              if (patientDetail.care_level && patientDetail.care_level.includes('要介護')) {
+                setAdlMobility('partial');
+                setAdlBathing('dependent');
+              }
+            }
+          } catch (error) {
+            console.error('患者詳細取得エラー:', error);
+          }
+        }
+        
         setLoading(false);
       } catch (error) {
         console.error('患者データ取得エラー:', error);
@@ -46,8 +75,8 @@ const PlanCreation: React.FC = () => {
       }
     };
     
-    fetchPatients();
-  }, []);
+    fetchData();
+  }, [patientId]);
 
   const handleNext = () => {
     if (currentStep < totalSteps) {

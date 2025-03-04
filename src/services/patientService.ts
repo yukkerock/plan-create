@@ -148,56 +148,65 @@ export const createPatient = async (patientData: PatientData, userId: string) =>
 };
 
 // 患者情報を更新
-export const updatePatient = async (id: string, patientData: Partial<PatientData>) => {
-  const updates = {
-    name: patientData.name,
-    gender: patientData.gender,
-    birthdate: patientData.birthdate,
-    age: patientData.age,
-    address: patientData.address,
-    phone: patientData.phone || null,
-    emergency_contact: patientData.emergencyContact || null,
-    medical_history: patientData.medicalHistory || null,
-    primary_doctor: patientData.primaryDoctor || null,
-    insurance_type: patientData.insuranceType,
-    care_level: patientData.careLevel
-  };
-
-  // デモモードの場合はダミーデータを返す
+export const updatePatient = async (id: string, patientData: PatientData) => {
+  // デモモードの場合はダミーの成功レスポンスを返す
   if (DEMO_MODE) {
-    const patient = dummyPatients.find(p => p.id === id);
-    if (!patient) return null;
-    return { ...patient, ...updates };
+    // 実際のデータは更新せず、成功したふりをする
+    console.info('デモモード: 患者ID ' + id + ' の更新をシミュレートしました');
+    return { 
+      ...patientData, 
+      id, 
+      gender: patientData.gender,
+      birthdate: patientData.birthdate,
+      emergency_contact: patientData.emergencyContact,
+      medical_history: patientData.medicalHistory,
+      primary_doctor: patientData.primaryDoctor,
+      insurance_type: patientData.insuranceType,
+      care_level: patientData.careLevel,
+      updated_at: new Date().toISOString()
+    };
   }
 
   try {
     const { data, error } = await supabase
       .from('patients')
-      .update(updates)
+      .update({
+        name: patientData.name,
+        gender: patientData.gender,
+        age: patientData.age,
+        birthdate: patientData.birthdate,
+        address: patientData.address,
+        phone: patientData.phone,
+        emergency_contact: patientData.emergencyContact,
+        medical_history: patientData.medicalHistory,
+        primary_doctor: patientData.primaryDoctor,
+        insurance_type: patientData.insuranceType,
+        care_level: patientData.careLevel,
+        updated_at: new Date().toISOString()
+      })
       .eq('id', id)
-      .select();
+      .select()
+      .single();
 
     if (error) {
-      console.error('患者情報更新エラー:', error);
-      const patient = dummyPatients.find(p => p.id === id);
-      if (!patient) return null;
-      return { ...patient, ...updates };
+      console.error('患者更新エラー:', error);
+      return null;
     }
 
-    return data[0];
+    return data;
   } catch (error) {
-    console.error('患者情報更新処理エラー:', error);
-    const patient = dummyPatients.find(p => p.id === id);
-    if (!patient) return null;
-    return { ...patient, ...updates };
+    console.error('患者更新処理エラー:', error);
+    return null;
   }
 };
 
 // 患者を削除
 export const deletePatient = async (id: string) => {
-  // デモモードの場合は成功を返す
+  // デモモードの場合はダミーの成功レスポンスを返す
   if (DEMO_MODE) {
-    return true;
+    // 実際のデータは削除せず、成功したふりをする
+    console.info('デモモード: 患者ID ' + id + ' の削除をシミュレートしました');
+    return { success: true };
   }
 
   try {
@@ -208,12 +217,12 @@ export const deletePatient = async (id: string) => {
 
     if (error) {
       console.error('患者削除エラー:', error);
-      return false;
+      return { success: false, error };
     }
 
-    return true;
+    return { success: true };
   } catch (error) {
     console.error('患者削除処理エラー:', error);
-    return false;
+    return { success: false, error };
   }
 };
