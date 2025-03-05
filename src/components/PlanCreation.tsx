@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
-import { ChevronRight, ChevronLeft, Save, FileText, Wand2 } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Save, FileText, Wand2, Download } from 'lucide-react';
 import { getPatients, getPatientById } from '../services/patientService';
 import { createCarePlan, updateCarePlan, CarePlan } from '../services/carePlanService';
 import { useAuth } from '../contexts/AuthContext';
+import PlanViewer from './PlanViewer';
 
 interface PlanCreationProps {
   patientId?: string;
@@ -26,6 +27,9 @@ const PlanCreation: React.FC<PlanCreationProps> = ({ patientId }) => {
   const [patientFamilyRequest, setPatientFamilyRequest] = useState<string>('');
   const [doctorInstructions, setDoctorInstructions] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [patientData, setPatientData] = useState<any>(null);
+  const [showPlanViewer, setShowPlanViewer] = useState(false);
+  const [savedPlan, setSavedPlan] = useState<any>(null);
   
   const [generatedPlan, setGeneratedPlan] = useState<null | {
     goals: string[];
@@ -53,6 +57,7 @@ const PlanCreation: React.FC<PlanCreationProps> = ({ patientId }) => {
           try {
             const patientDetail = await getPatientById(patientId);
             if (patientDetail) {
+              setPatientData(patientDetail);
               // 患者情報から関連するフィールドを初期設定
               setHealthStatus(patientDetail.medical_history || '');
               setDoctorInstructions(patientDetail.primary_doctor ? `${patientDetail.primary_doctor}からの指示` : '');
@@ -77,6 +82,26 @@ const PlanCreation: React.FC<PlanCreationProps> = ({ patientId }) => {
     
     fetchData();
   }, [patientId]);
+
+  // 患者が選択された時に患者データを取得
+  useEffect(() => {
+    const fetchPatientData = async () => {
+      if (selectedPatient) {
+        try {
+          const patientDetail = await getPatientById(selectedPatient);
+          if (patientDetail) {
+            setPatientData(patientDetail);
+          }
+        } catch (error) {
+          console.error('患者詳細取得エラー:', error);
+        }
+      }
+    };
+    
+    if (selectedPatient && !patientData) {
+      fetchPatientData();
+    }
+  }, [selectedPatient, patientData]);
 
   const handleNext = () => {
     if (currentStep < totalSteps) {
@@ -175,13 +200,30 @@ const PlanCreation: React.FC<PlanCreationProps> = ({ patientId }) => {
       };
       
       // 計画書を保存
-      await createCarePlan(carePlanData);
+      const savedCarePlan = await createCarePlan(carePlanData);
+      
+      // 保存した計画書データをセット
+      setSavedPlan({
+        ...carePlanData,
+        patient: patientData,
+        createdAt: new Date().toISOString()
+      });
       
       // 完了ステップに進む
       setCurrentStep(5);
     } catch (error) {
       console.error('計画書保存エラー:', error);
     }
+  };
+
+  // 計画書表示ハンドラ
+  const handleViewPlan = () => {
+    setShowPlanViewer(true);
+  };
+
+  // 計画書表示を閉じるハンドラ
+  const handleClosePlanViewer = () => {
+    setShowPlanViewer(false);
   };
 
   return (
@@ -616,12 +658,19 @@ const PlanCreation: React.FC<PlanCreationProps> = ({ patientId }) => {
             </p>
             
             <div className="flex justify-center space-x-4 pt-4">
-              <Button variant="outline" className="flex items-center space-x-2">
+              <Button 
+                variant="outline" 
+                className="flex items-center space-x-2"
+                onClick={handleViewPlan}
+              >
                 <FileText size={18} />
                 <span>計画書を表示</span>
               </Button>
-              <Button className="flex items-center space-x-2">
-                <Save size={18} />
+              <Button 
+                className="flex items-center space-x-2"
+                onClick={handleViewPlan}
+              >
+                <Download size={18} />
                 <span>PDFで出力</span>
               </Button>
             </div>
@@ -662,6 +711,11 @@ const PlanCreation: React.FC<PlanCreationProps> = ({ patientId }) => {
           </div>
         )}
       </Card>
+
+      {/* 計画書表示モーダル */}
+      {showPlanViewer && savedPlan && (
+        <PlanViewer plan={savedPlan} onClose={handleClosePlanViewer} />
+      )}
     </div>
   );
 };
