@@ -1,4 +1,4 @@
-import { supabase, DEMO_MODE } from '../lib/supabase';
+import { supabase, DEMO_MODE, PARTIAL_DEMO_MODE } from '../lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
 
 // 計画書の型定義
@@ -95,8 +95,8 @@ const dummyCarePlans = [
 
 // 患者の計画書一覧を取得
 export const getCarePlansByPatient = async (patientId: string) => {
-  // デモモードの場合はダミーデータを返す
-  if (DEMO_MODE) {
+  // 完全なデモモードの場合はダミーデータを返す
+  if (DEMO_MODE && !PARTIAL_DEMO_MODE) {
     return dummyCarePlans.filter(plan => plan.patient_id === patientId)
       .sort((a, b) => {
         if (a.year !== b.year) return b.year - a.year;
@@ -134,8 +134,8 @@ export const getCarePlansByPatient = async (patientId: string) => {
 
 // 特定の月の計画書を取得
 export const getCarePlanByMonth = async (patientId: string, month: number, year: number) => {
-  // デモモードの場合はダミーデータを返す
-  if (DEMO_MODE) {
+  // 完全なデモモードの場合はダミーデータを返す
+  if (DEMO_MODE && !PARTIAL_DEMO_MODE) {
     return dummyCarePlans.find(plan => 
       plan.patient_id === patientId && 
       plan.month === month && 
@@ -182,8 +182,8 @@ export const getPatientsNeedingPlans = async () => {
   const currentMonth = currentDate.getMonth() + 1; // JavaScriptの月は0から始まるので+1
   const currentYear = currentDate.getFullYear();
 
-  // デモモードの場合はダミーデータを返す
-  if (DEMO_MODE) {
+  // 完全なデモモードの場合はダミーデータを返す
+  if (DEMO_MODE && !PARTIAL_DEMO_MODE) {
     // ダミーの患者データを取得
     const { getPatients } = await import('./patientService');
     const patients = await getPatients();
@@ -257,8 +257,8 @@ export const createCarePlan = async (carePlan: CarePlan) => {
     updated_at: new Date().toISOString()
   };
 
-  // デモモードの場合はダミーデータを返す
-  if (DEMO_MODE) {
+  // 完全なデモモードの場合はダミーデータを返す
+  if (DEMO_MODE && !PARTIAL_DEMO_MODE) {
     return newCarePlan;
   }
 
@@ -287,8 +287,8 @@ export const updateCarePlan = async (id: string, updates: Partial<CarePlan>) => 
     updated_at: new Date().toISOString()
   };
 
-  // デモモードの場合はダミーデータを返す
-  if (DEMO_MODE) {
+  // 完全なデモモードの場合はダミーデータを返す
+  if (DEMO_MODE && !PARTIAL_DEMO_MODE) {
     const planIndex = dummyCarePlans.findIndex(plan => plan.id === id);
     if (planIndex === -1) return null;
     
@@ -338,8 +338,8 @@ export const updateCarePlan = async (id: string, updates: Partial<CarePlan>) => 
 
 // 計画書を削除
 export const deleteCarePlan = async (id: string) => {
-  // デモモードの場合は成功を返す
-  if (DEMO_MODE) {
+  // 完全なデモモードの場合は成功を返す
+  if (DEMO_MODE && !PARTIAL_DEMO_MODE) {
     return true;
   }
 
@@ -358,5 +358,31 @@ export const deleteCarePlan = async (id: string) => {
   } catch (error) {
     console.error('計画書削除処理エラー:', error);
     return false;
+  }
+};
+
+// 計画書IDから計画書を取得
+export const getCarePlanById = async (planId: string) => {
+  // 完全なデモモードの場合はダミーデータを返す
+  if (DEMO_MODE && !PARTIAL_DEMO_MODE) {
+    return dummyCarePlans.find(plan => plan.id === planId) || null;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('care_plans')
+      .select('*')
+      .eq('id', planId)
+      .single();
+
+    if (error) {
+      console.error('計画書取得エラー:', error);
+      return dummyCarePlans.find(plan => plan.id === planId) || null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('計画書取得処理エラー:', error);
+    return dummyCarePlans.find(plan => plan.id === planId) || null;
   }
 };

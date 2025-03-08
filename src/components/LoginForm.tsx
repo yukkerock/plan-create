@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
+import { DEMO_MODE, PARTIAL_DEMO_MODE } from '../lib/supabase';
 
 interface LoginFormProps {
   onLogin: (email: string, password: string) => void;
+  onSwitchToSignup?: () => void;
 }
 
-const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
+const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSwitchToSignup }) => {
   const [email, setEmail] = useState('test@example.com');
   const [password, setPassword] = useState('password123');
   const [error, setError] = useState('');
@@ -110,12 +112,31 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
         </div>
       </form>
       
+      {/* アカウント登録リンク */}
+      {onSwitchToSignup && PARTIAL_DEMO_MODE && (
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-600">
+            アカウントをお持ちでないですか？{' '}
+            <button
+              type="button"
+              onClick={onSwitchToSignup}
+              className="font-medium text-blue-600 hover:text-blue-500"
+              disabled={isLoading}
+            >
+              新規登録
+            </button>
+          </p>
+        </div>
+      )}
+      
       {/* テスト用アカウント情報 */}
-      <div className="mt-6 p-3 bg-gray-50 rounded-md border border-gray-200">
-        <p className="text-sm text-gray-600 font-medium">テスト用アカウント</p>
-        <p className="text-sm text-gray-500 mt-1">Email: test@example.com</p>
-        <p className="text-sm text-gray-500">Password: password123</p>
-      </div>
+      {DEMO_MODE && (
+        <div className="mt-6 p-3 bg-gray-50 rounded-md border border-gray-200">
+          <p className="text-sm text-gray-600 font-medium">テスト用アカウント</p>
+          <p className="text-sm text-gray-500 mt-1">Email: test@example.com</p>
+          <p className="text-sm text-gray-500">Password: password123</p>
+        </div>
+      )}
     </Card>
   );
 };

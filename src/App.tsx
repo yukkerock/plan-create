@@ -9,14 +9,16 @@ import PlanCreation from './components/PlanCreation';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import LoginForm from './components/LoginForm';
+import SignupForm from './components/SignupForm';
 import { useAuth } from './contexts/AuthContext';
-import { DEMO_MODE } from './lib/supabase';
+import { DEMO_MODE, PARTIAL_DEMO_MODE } from './lib/supabase';
 
 function App() {
   // 初期状態をfalseに設定してログイン画面を表示
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedPatientId, setSelectedPatientId] = useState<string | undefined>(undefined);
+  const [showSignup, setShowSignup] = useState(false);
   
   const { user, signIn, loading } = useAuth();
 
@@ -71,13 +73,27 @@ function App() {
               </div>
               <div className="ml-3">
                 <p className="text-sm text-blue-700">
-                  デモモードで動作しています。テスト用アカウント（test@example.com / password123）でログインしてください。
+                  {PARTIAL_DEMO_MODE 
+                    ? 'デモモード（部分的）で動作しています。実際のアカウントでログインするか、新規アカウントを作成してください。'
+                    : 'デモモードで動作しています。テスト用アカウント（test@example.com / password123）でログインしてください。'
+                  }
                 </p>
               </div>
             </div>
           </div>
         )}
-        <LoginForm onLogin={handleLogin} />
+        
+        {showSignup ? (
+          <SignupForm 
+            onSignup={() => setShowSignup(false)} 
+            onSwitchToLogin={() => setShowSignup(false)} 
+          />
+        ) : (
+          <LoginForm 
+            onLogin={handleLogin} 
+            onSwitchToSignup={() => setShowSignup(true)}
+          />
+        )}
       </div>
     );
   }

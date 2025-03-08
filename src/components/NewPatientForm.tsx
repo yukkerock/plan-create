@@ -14,7 +14,7 @@ export interface PatientData {
   name: string;
   age: number;
   gender: string;
-  birthdate: string;
+  birthdate: string; // UIでの表示・入力用に残す
   address: string;
   phone: string;
   emergencyContact: string;
@@ -150,9 +150,13 @@ const NewPatientForm: React.FC<NewPatientFormProps> = ({ patientId, onClose, onS
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (validateForm()) {
-      onSave(formData);
+    if (!validateForm()) {
+      return;
     }
+    
+    // birthdateはフォームでは使用するが、データベースには保存しない
+    // 年齢計算などの処理はフロントエンドで行う
+    onSave(formData);
   };
 
   return (

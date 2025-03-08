@@ -4,6 +4,7 @@ import { Button } from './ui/Button';
 import { ChevronRight, ChevronLeft, Save, FileText, Wand2, Download } from 'lucide-react';
 import { getPatients, getPatientById } from '../services/patientService';
 import { createCarePlan, updateCarePlan, CarePlan } from '../services/carePlanService';
+import { generateCarePlan } from '../services/aiService';
 import { useAuth } from '../contexts/AuthContext';
 import PlanViewer from './PlanViewer';
 
@@ -115,58 +116,52 @@ const PlanCreation: React.FC<PlanCreationProps> = ({ patientId }) => {
     }
   };
 
-  const handleGenerate = () => {
-    if (!selectedPatient || !user) return;
+  const handleGenerate = async () => {
+    if (!selectedPatient || !user || !patientData) return;
     
     setIsGenerating(true);
-    // 実際の実装ではAI APIを呼び出す
-    setTimeout(() => {
-      // スタッフ補足情報に基づいて生成内容を調整
-      let goals = [
-        '血圧を安定させ、収縮期血圧140-160mmHg、拡張期血圧90mmHg以下を維持する',
-        '服薬管理を自己で行えるようになる',
-        '室内歩行を見守りなしで10m以上可能にする'
-      ];
+    
+    try {
+      // 基本情報をまとめる
+      const basicInfo = {
+        healthStatus,
+        adlMobility,
+        adlEating,
+        adlToilet,
+        adlBathing,
+        patientFamilyRequest,
+        doctorInstructions,
+        staffNotes
+      };
       
-      let issues = [
-        '高血圧による症状悪化リスク',
-        '服薬管理の困難さ',
-        '転倒リスクによる活動制限'
-      ];
+      // Gemini APIを使用して計画書を生成
+      const generatedData = await generateCarePlan(patientData, basicInfo);
       
-      let supports = [
-        '週2回の血圧測定と記録の支援',
-        '服薬カレンダーの活用と確認',
-        '自宅内の環境調整と歩行訓練の実施'
-      ];
-      
-      // スタッフ補足情報がある場合、それに基づいて内容を追加/調整
-      if (staffNotes.includes('認知機能')) {
-        goals.push('日常生活の基本的な判断ができるよう認知機能の維持を図る');
-        issues.push('認知機能低下による日常生活への影響');
-        supports.push('認知機能維持のための簡単な課題提供と実施支援');
-      }
-      
-      if (staffNotes.includes('家族')) {
-        goals.push('家族の介護負担を軽減し、持続可能なケア環境を構築する');
-        issues.push('家族の介護負担増大リスク');
-        supports.push('家族への介護方法指導と相談支援の実施');
-      }
-      
-      if (staffNotes.includes('栄養')) {
-        goals.push('適切な栄養摂取を維持し、体重の安定を図る');
-        issues.push('栄養状態の悪化リスク');
-        supports.push('食事内容の確認と栄養指導の実施');
-      }
-      
-      setGeneratedPlan({
-        goals,
-        issues,
-        supports
-      });
-      setIsGenerating(false);
+      setGeneratedPlan(generatedData);
       setCurrentStep(4);
-    }, 2000);
+    } catch (error) {
+      console.error('計画書生成エラー:', error);
+      // エラー時のフォールバック
+      setGeneratedPlan({
+        goals: [
+          '血圧を安定させ、収縮期血圧140-160mmHg、拡張期血圧90mmHg以下を維持する',
+          '服薬管理を自己で行えるようになる',
+          '室内歩行を見守りなしで10m以上可能にする'
+        ],
+        issues: [
+          '高血圧による症状悪化リスク',
+          '服薬管理の困難さ',
+          '転倒リスクによる活動制限'
+        ],
+        supports: [
+          '週2回の血圧測定と記録の支援',
+          '服薬カレンダーの活用と確認',
+          '自宅内の環境調整と歩行訓練の実施'
+        ]
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
   
   const handleSavePlan = async () => {

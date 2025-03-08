@@ -5,10 +5,13 @@ import type { Database } from './database.types';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 export const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true' || !supabaseUrl || !supabaseAnonKey;
+export const PARTIAL_DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'partial';
 
 // デモモードの場合は警告を表示
 if (DEMO_MODE) {
   console.info('デモモードで動作しています。Supabase接続は無効化されています。');
+} else if (PARTIAL_DEMO_MODE) {
+  console.info('部分的デモモードで動作しています。認証は実際のSupabaseを使用し、データはデモデータを使用します。');
 }
 
 // Supabaseクライアントの作成

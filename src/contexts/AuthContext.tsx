@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Session, User } from '@supabase/supabase-js';
-import { supabase, DEMO_MODE } from '../lib/supabase';
+import { supabase, DEMO_MODE, PARTIAL_DEMO_MODE } from '../lib/supabase';
 
 interface AuthContextType {
   session: Session | null;
@@ -20,8 +20,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // デモモードの場合は認証処理をスキップ
-    if (DEMO_MODE) {
+    // 完全なデモモードの場合は認証処理をスキップ
+    if (DEMO_MODE && !PARTIAL_DEMO_MODE) {
       setLoading(false);
       return;
     }
@@ -54,7 +54,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else {
           setProfile(null);
         }
-        setLoading(false);
       }
     );
 
@@ -63,19 +62,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  // ユーザープロファイルを取得
   const fetchProfile = async (userId: string) => {
-    // デモモードの場合はダミーデータを返す
-    if (DEMO_MODE) {
-      setProfile({
-        id: userId,
-        full_name: '山田 花子',
-        role: '看護師'
-      });
-      return;
-    }
-
     try {
+      // 部分的デモモードでも実際のプロフィールデータを取得
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -83,63 +72,64 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (error) {
-        console.error('プロファイル取得エラー:', error);
-      } else {
-        setProfile(data);
+        console.error('プロフィール取得エラー:', error);
+        return;
       }
+
+      setProfile(data);
     } catch (error) {
-      console.error('プロファイル取得処理エラー:', error);
+      console.error('プロフィール取得処理エラー:', error);
     }
   };
 
-  // ログイン
   const signIn = async (email: string, password: string) => {
     try {
-      // テスト用アカウントの場合、ダミーユーザーでログイン成功とする
-      if (email === 'test@example.com' && password === 'password123') {
-        // ダミーユーザーを設定
+      // 完全なデモモードの場合はダミーの認証を返す
+      if (DEMO_MODE && !PARTIAL_DEMO_MODE) {
+        // デモモードではダミーのユーザー情報を設定
         const dummyUser = {
           id: '12345',
-          email: 'test@example.com',
+          email: email,
           user_metadata: {
-            full_name: '山田 花子',
-            role: '看護師'
+            full_name: 'デモユーザー'
           }
         };
         setUser(dummyUser as any);
         setProfile({
           id: '12345',
-          full_name: '山田 花子',
-          role: '看護師'
+          full_name: 'デモユーザー',
+          role: 'user'
         });
         return { error: null };
       }
-      
-      // デモモード以外の場合はSupabaseの認証を使用
-      if (!DEMO_MODE) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        return { error };
-      }
-      
-      // デモモードでテスト用アカウント以外の場合はエラーを返す
-      return { error: { message: '認証に失敗しました。テスト用アカウントを使用してください。' } };
+
+      // 実際の認証処理
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      return { error };
     } catch (error) {
-      console.error('ログイン処理エラー:', error);
+      console.error('ログインエラー:', error);
       return { error };
     }
   };
 
-  // ログアウト
   const signOut = async () => {
     try {
-      if (!DEMO_MODE) {
-        await supabase.auth.signOut();
+      // 完全なデモモードの場合は単にステートをクリア
+      if (DEMO_MODE && !PARTIAL_DEMO_MODE) {
+        setUser(null);
+        setProfile(null);
+        setSession(null);
+        return;
       }
-      setUser(null);
-      setProfile(null);
-      setSession(null);
+
+      // 実際のログアウト処理
+      await supabase.auth.signOut();
     } catch (error) {
-      console.error('ログアウト処理エラー:', error);
+      console.error('ログアウトエラー:', error);
     }
   };
 
@@ -149,7 +139,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     profile,
     loading,
     signIn,
-    signOut,
+    signOut
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

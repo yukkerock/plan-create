@@ -1,4 +1,4 @@
-import { supabase, DEMO_MODE } from '../lib/supabase';
+import { supabase, DEMO_MODE, PARTIAL_DEMO_MODE } from '../lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
 import { PatientData } from '../components/NewPatientForm';
 
@@ -56,8 +56,8 @@ const dummyPatients = [
 
 // 患者一覧を取得
 export const getPatients = async () => {
-  // デモモードの場合はダミーデータを返す
-  if (DEMO_MODE) {
+  // 完全なデモモードの場合はダミーデータを返す
+  if (DEMO_MODE && !PARTIAL_DEMO_MODE) {
     return dummyPatients;
   }
 
@@ -72,7 +72,16 @@ export const getPatients = async () => {
       return dummyPatients;
     }
 
-    return data.length > 0 ? data : dummyPatients;
+    // データベースから返されたデータに、UIで使用する項目を追加
+    const enhancedData = data.map(patient => ({
+      ...patient,
+      // birthdateは既に存在するので追加不要
+      // データベースに存在しないが、UIで必要なフィールドにはデフォルト値を設定
+      insurance_type: patient.insurance_type || '介護保険',
+      care_level: patient.care_level || '要介護1'
+    }));
+
+    return data.length > 0 ? enhancedData : dummyPatients;
   } catch (error) {
     console.error('患者データ取得処理エラー:', error);
     return dummyPatients;
@@ -81,8 +90,8 @@ export const getPatients = async () => {
 
 // 患者詳細を取得
 export const getPatientById = async (id: string) => {
-  // デモモードの場合はダミーデータを返す
-  if (DEMO_MODE) {
+  // 完全なデモモードの場合はダミーデータを返す
+  if (DEMO_MODE && !PARTIAL_DEMO_MODE) {
     return dummyPatients.find(patient => patient.id === id) || null;
   }
 
@@ -98,7 +107,13 @@ export const getPatientById = async (id: string) => {
       return dummyPatients.find(patient => patient.id === id) || null;
     }
 
-    return data;
+    // データベースから返されたデータに、UIで使用する項目を追加
+    return {
+      ...data,
+      // birthdateは既に存在するので追加不要
+      insurance_type: data.insurance_type || '介護保険',
+      care_level: data.care_level || '要介護1'
+    };
   } catch (error) {
     console.error('患者詳細取得処理エラー:', error);
     return dummyPatients.find(patient => patient.id === id) || null;
@@ -107,6 +122,7 @@ export const getPatientById = async (id: string) => {
 
 // 新規患者を登録
 export const createPatient = async (patientData: PatientData, userId: string) => {
+  // Supabaseのテーブル構造に合わせてデータを整形
   const newPatient = {
     id: uuidv4(),
     name: patientData.name,
@@ -118,15 +134,22 @@ export const createPatient = async (patientData: PatientData, userId: string) =>
     emergency_contact: patientData.emergencyContact || null,
     medical_history: patientData.medicalHistory || null,
     primary_doctor: patientData.primaryDoctor || null,
-    insurance_type: patientData.insuranceType,
-    care_level: patientData.careLevel,
+    // insurance_typeカラムを除外
+    // insurance_type: patientData.insuranceType,
+    // care_levelカラムを除外
+    // care_level: patientData.careLevel,
     user_id: userId,
+    // created_atカラムが追加されたので使用する
     created_at: new Date().toISOString()
   };
 
-  // デモモードの場合はダミーデータを返す
-  if (DEMO_MODE) {
-    return newPatient;
+  // 完全なデモモードの場合はダミーデータを返す
+  if (DEMO_MODE && !PARTIAL_DEMO_MODE) {
+    return {
+      ...newPatient,
+      insurance_type: patientData.insuranceType,
+      care_level: patientData.careLevel
+    };
   }
 
   try {
@@ -137,20 +160,33 @@ export const createPatient = async (patientData: PatientData, userId: string) =>
 
     if (error) {
       console.error('患者登録エラー:', error);
-      return newPatient;
+      return {
+        ...newPatient,
+        insurance_type: patientData.insuranceType,
+        care_level: patientData.careLevel
+      };
     }
 
-    return data[0];
+    // データベースから返されたデータに、UIで使用する項目を追加
+    return {
+      ...data[0],
+      insurance_type: patientData.insuranceType,
+      care_level: patientData.careLevel
+    };
   } catch (error) {
     console.error('患者登録処理エラー:', error);
-    return newPatient;
+    return {
+      ...newPatient,
+      insurance_type: patientData.insuranceType,
+      care_level: patientData.careLevel
+    };
   }
 };
 
 // 患者情報を更新
 export const updatePatient = async (id: string, patientData: PatientData) => {
-  // デモモードの場合はダミーの成功レスポンスを返す
-  if (DEMO_MODE) {
+  // 完全なデモモードの場合はダミーの成功レスポンスを返す
+  if (DEMO_MODE && !PARTIAL_DEMO_MODE) {
     // 実際のデータは更新せず、成功したふりをする
     console.info('デモモード: 患者ID ' + id + ' の更新をシミュレートしました');
     return { 
@@ -168,22 +204,28 @@ export const updatePatient = async (id: string, patientData: PatientData) => {
   }
 
   try {
+    // Supabaseのテーブル構造に合わせてデータを整形
+    const updateData = {
+      name: patientData.name,
+      gender: patientData.gender,
+      age: patientData.age,
+      birthdate: patientData.birthdate,
+      address: patientData.address,
+      phone: patientData.phone,
+      emergency_contact: patientData.emergencyContact,
+      medical_history: patientData.medicalHistory,
+      primary_doctor: patientData.primaryDoctor,
+      // insurance_typeカラムを除外
+      // insurance_type: patientData.insuranceType,
+      // care_levelカラムを除外
+      // care_level: patientData.careLevel,
+      // updated_atカラムが追加されたので使用する
+      updated_at: new Date().toISOString()
+    };
+
     const { data, error } = await supabase
       .from('patients')
-      .update({
-        name: patientData.name,
-        gender: patientData.gender,
-        age: patientData.age,
-        birthdate: patientData.birthdate,
-        address: patientData.address,
-        phone: patientData.phone,
-        emergency_contact: patientData.emergencyContact,
-        medical_history: patientData.medicalHistory,
-        primary_doctor: patientData.primaryDoctor,
-        insurance_type: patientData.insuranceType,
-        care_level: patientData.careLevel,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', id)
       .select()
       .single();
@@ -193,7 +235,12 @@ export const updatePatient = async (id: string, patientData: PatientData) => {
       return null;
     }
 
-    return data;
+    // データベースから返されたデータに、UIで使用する項目を追加
+    return {
+      ...data,
+      insurance_type: patientData.insuranceType,
+      care_level: patientData.careLevel
+    };
   } catch (error) {
     console.error('患者更新処理エラー:', error);
     return null;
@@ -202,8 +249,8 @@ export const updatePatient = async (id: string, patientData: PatientData) => {
 
 // 患者を削除
 export const deletePatient = async (id: string) => {
-  // デモモードの場合はダミーの成功レスポンスを返す
-  if (DEMO_MODE) {
+  // 完全なデモモードの場合はダミーの成功レスポンスを返す
+  if (DEMO_MODE && !PARTIAL_DEMO_MODE) {
     // 実際のデータは削除せず、成功したふりをする
     console.info('デモモード: 患者ID ' + id + ' の削除をシミュレートしました');
     return { success: true };
