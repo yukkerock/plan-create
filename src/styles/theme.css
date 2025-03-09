@@ -1,0 +1,150 @@
+/* テーマの定義 */
+:root {
+  /* ライトテーマの変数 */
+  --background: #f8f9fa;
+  --foreground: #1a1a1a;
+  --card-background: #ffffff;
+  --card-border: #e2e8f0;
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #1e293b;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #f1f5f9;
+  --accent-foreground: #1e293b;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #3b82f6;
+  --radius: 0.5rem;
+  
+  /* デフォルトのフォントサイズ */
+  --font-size-base: 16px;
+  --font-size-small: 14px;
+  --font-size-large: 18px;
+}
+
+/* ダークテーマの変数 */
+.dark-theme {
+  --background: #1a1a1a;
+  --foreground: #f8f9fa;
+  --card-background: #262626;
+  --card-border: #404040;
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
+  --secondary: #334155;
+  --secondary-foreground: #f8fafc;
+  --muted: #334155;
+  --muted-foreground: #94a3b8;
+  --accent: #334155;
+  --accent-foreground: #f8fafc;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #404040;
+  --input: #404040;
+  --ring: #3b82f6;
+}
+
+/* ライトテーマ（明示的に設定） */
+.light-theme {
+  --background: #f8f9fa;
+  --foreground: #1a1a1a;
+  --card-background: #ffffff;
+  --card-border: #e2e8f0;
+}
+
+/* 文字サイズの設定 */
+.text-small {
+  font-size: var(--font-size-small);
+}
+
+.text-medium {
+  font-size: var(--font-size-base);
+}
+
+.text-large {
+  font-size: var(--font-size-large);
+}
+
+/* 基本スタイルの適用 */
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* カードのスタイル */
+.card {
+  background-color: var(--card-background);
+  border-color: var(--card-border);
+}
+
+/* 入力フィールドのスタイル */
+input, select, textarea {
+  background-color: var(--card-background);
+  color: var(--foreground);
+  border-color: var(--border);
+}
+
+/* ボタンのスタイル */
+button {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* 文字サイズの調整 */
+.text-small h1 {
+  font-size: 1.5rem;
+}
+
+.text-medium h1 {
+  font-size: 1.75rem;
+}
+
+.text-large h1 {
+  font-size: 2rem;
+}
+
+.text-small h2 {
+  font-size: 1.25rem;
+}
+
+.text-medium h2 {
+  font-size: 1.5rem;
+}
+
+.text-large h2 {
+  font-size: 1.75rem;
+}
+
+.text-small p, .text-small label, .text-small input, .text-small select, .text-small button {
+  font-size: 0.875rem;
+}
+
+.text-medium p, .text-medium label, .text-medium input, .text-medium select, .text-medium button {
+  font-size: 1rem;
+}
+
+.text-large p, .text-large label, .text-large input, .text-large select, .text-large button {
+  font-size: 1.125rem;
+}
+
+/* ダークモード時のスクロールバー */
+.dark-theme ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.dark-theme ::-webkit-scrollbar-track {
+  background: var(--card-background);
+}
+
+.dark-theme ::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 5px;
+}
+
+.dark-theme ::-webkit-scrollbar-thumb:hover {
+  background: #666;
+} 
