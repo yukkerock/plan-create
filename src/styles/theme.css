@@ -20,6 +20,12 @@
   --ring: #3b82f6;
   --radius: 0.5rem;
   
+  /* 警告色 */
+  --warning-light: #fee2e2;
+  --warning-dark: #fecaca;
+  --warning-text-light: #b91c1c;
+  --warning-text-dark: #fca5a5;
+  
   /* デフォルトのフォントサイズ */
   --font-size-base: 16px;
   --font-size-small: 14px;
@@ -45,6 +51,12 @@
   --border: #333333;
   --input: #333333;
   --ring: #3b82f6;
+  
+  /* ダークモード時の警告色 */
+  --warning-light: #3f1d1d;
+  --warning-dark: #4c2424;
+  --warning-text-light: #f87171;
+  --warning-text-dark: #fca5a5;
 }
 
 /* ライトテーマ（明示的に設定） */
@@ -236,4 +248,37 @@ button {
 
 .dark-theme .border-blue-500 {
   border-color: #3b82f6 !important;
+}
+
+/* 警告メッセージのスタイル */
+.bg-red-100, .bg-pink-100, .bg-rose-100 {
+  background-color: var(--warning-light);
+}
+
+.text-red-500, .text-red-600, .text-red-700 {
+  color: var(--warning-text-light);
+}
+
+/* ダークモード時の警告メッセージ */
+.dark-theme .bg-red-100, 
+.dark-theme .bg-pink-100, 
+.dark-theme .bg-rose-100 {
+  background-color: var(--warning-dark) !important;
+}
+
+.dark-theme .text-red-500, 
+.dark-theme .text-red-600, 
+.dark-theme .text-red-700 {
+  color: var(--warning-text-dark) !important;
+}
+
+/* 計画書作成画面へのリンクボタン */
+.dark-theme a[href*="plan-creation"] {
+  background-color: var(--warning-dark) !important;
+  color: var(--warning-text-dark) !important;
+  border: 1px solid #6b2e2e !important;
+}
+
+.dark-theme a[href*="plan-creation"]:hover {
+  background-color: #5a2828 !important;
 } 

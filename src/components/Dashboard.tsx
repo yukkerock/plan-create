@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from './ui/Card';
-import { FileText, Users, Clock, CheckCircle, AlertTriangle, Info, Bell } from 'lucide-react';
+import { FileText, Users, Clock, CheckCircle, AlertTriangle, Info, Bell, ArrowRight } from 'lucide-react';
 import { getPatients } from '../services/patientService';
 import { getPatientsNeedingPlans, getCarePlansByPatient } from '../services/carePlanService';
 import { DEMO_MODE, PARTIAL_DEMO_MODE } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -18,6 +19,7 @@ const Dashboard: React.FC = () => {
   const [patientsNeedingPlans, setPatientsNeedingPlans] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const { user } = useAuth();
+  const { isDarkMode } = useTheme();
 
   // 現在の日付を取得
   const currentDate = new Date();
@@ -236,29 +238,44 @@ const Dashboard: React.FC = () => {
       </div>
       
       {/* 未作成計画書アラート */}
-      <Card className="bg-red-50 border border-red-200 overflow-hidden">
-        <div className="bg-red-100 px-4 py-3 border-b border-red-200">
+      <Card className={`overflow-hidden ${isDarkMode ? 'border-red-800' : 'bg-red-50 border-red-200'}`}>
+        <div className={`px-4 py-3 border-b ${isDarkMode ? 'bg-red-900 border-red-800' : 'bg-red-100 border-red-200'}`}>
           <h2 className="font-medium flex items-center">
-            <AlertTriangle size={18} className="text-red-600 mr-2" />
-            <span>今月の計画書が未作成の患者</span>
+            <AlertTriangle size={18} className={`mr-2 ${isDarkMode ? 'text-red-400' : 'text-red-600'}`} />
+            <span className={isDarkMode ? 'text-red-100' : ''}>今月の計画書が未作成の患者</span>
           </h2>
         </div>
-        <div className="divide-y divide-red-200">
+        <div className={`divide-y ${isDarkMode ? 'divide-red-800' : 'divide-red-200'}`}>
           {patientsNeedingPlans.length > 0 ? (
             patientsNeedingPlans.map((patient) => (
-              <div key={patient.id} className="px-4 py-3 hover:bg-red-100 transition-colors">
+              <div 
+                key={patient.id} 
+                className={`px-4 py-3 transition-colors ${
+                  isDarkMode 
+                    ? 'hover:bg-red-900' 
+                    : 'hover:bg-red-100'
+                }`}
+              >
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="font-medium">{patient.name}</p>
-                    <p className="text-sm text-gray-700">{patient.age}歳</p>
+                    <p className={`font-medium ${isDarkMode ? 'text-red-100' : ''}`}>{patient.name}</p>
+                    <p className={`text-sm ${isDarkMode ? 'text-red-200' : 'text-gray-700'}`}>{patient.age}歳</p>
                   </div>
                   <div>
                     {patient.lastPlanMonth === null ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        isDarkMode 
+                          ? 'bg-red-800 text-red-100' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
                         計画書未作成
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        isDarkMode 
+                          ? 'bg-amber-800 text-amber-100' 
+                          : 'bg-amber-100 text-amber-800'
+                      }`}>
                         最終更新: {patient.lastPlanMonth}月
                       </span>
                     )}
@@ -267,13 +284,24 @@ const Dashboard: React.FC = () => {
               </div>
             ))
           ) : (
-            <div className="px-4 py-6 text-center text-gray-500">
+            <div className={`px-4 py-6 text-center ${isDarkMode ? 'text-red-200' : 'text-gray-500'}`}>
               すべての患者の今月の計画書が作成済みです
             </div>
           )}
         </div>
-        <div className="bg-red-100 px-4 py-2 border-t border-red-200">
-          <a href="#" className="text-sm text-red-700 hover:text-red-900 font-medium">計画書作成画面へ</a>
+        <div className={`px-4 py-2 border-t flex items-center justify-between ${
+          isDarkMode ? 'bg-red-900 border-red-800' : 'bg-red-100 border-red-200'
+        }`}>
+          <a 
+            href="#plan-creation" 
+            onClick={() => document.getElementById('plan-creation')?.click()}
+            className={`text-sm font-medium flex items-center ${
+              isDarkMode ? 'text-red-100 hover:text-white' : 'text-red-700 hover:text-red-900'
+            }`}
+          >
+            計画書作成画面へ
+            <ArrowRight size={16} className="ml-1" />
+          </a>
         </div>
       </Card>
       
