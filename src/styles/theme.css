@@ -28,22 +28,22 @@
 
 /* ダークテーマの変数 */
 .dark-theme {
-  --background: #1a1a1a;
+  --background: #121212;
   --foreground: #f8f9fa;
-  --card-background: #262626;
-  --card-border: #404040;
+  --card-background: #1e1e1e;
+  --card-border: #333333;
   --primary: #3b82f6;
   --primary-foreground: #ffffff;
-  --secondary: #334155;
+  --secondary: #1f2937;
   --secondary-foreground: #f8fafc;
-  --muted: #334155;
+  --muted: #1f2937;
   --muted-foreground: #94a3b8;
-  --accent: #334155;
+  --accent: #1f2937;
   --accent-foreground: #f8fafc;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: #404040;
-  --input: #404040;
+  --border: #333333;
+  --input: #333333;
   --ring: #3b82f6;
 }
 
@@ -75,8 +75,21 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* ダークモードの基本スタイル */
+.dark-theme body,
+.dark-theme {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
 /* カードのスタイル */
 .card {
+  background-color: var(--card-background);
+  border-color: var(--card-border);
+}
+
+/* ダークモードのカードスタイル */
+.dark-theme .card {
   background-color: var(--card-background);
   border-color: var(--card-border);
 }
@@ -88,9 +101,23 @@ input, select, textarea {
   border-color: var(--border);
 }
 
+/* ダークモードの入力フィールド */
+.dark-theme input,
+.dark-theme select,
+.dark-theme textarea {
+  background-color: var(--card-background);
+  color: var(--foreground);
+  border-color: var(--border);
+}
+
 /* ボタンのスタイル */
 button {
   transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ダークモードのボタン */
+.dark-theme button:not([class*="bg-"]) {
+  color: var(--foreground);
 }
 
 /* 文字サイズの調整 */
@@ -147,4 +174,66 @@ button {
 
 .dark-theme ::-webkit-scrollbar-thumb:hover {
   background: #666;
+}
+
+/* ダークモード時の特定のコンポーネントスタイル */
+.dark-theme .bg-white {
+  background-color: var(--card-background) !important;
+}
+
+.dark-theme .bg-gray-50,
+.dark-theme .bg-gray-100,
+.dark-theme .bg-blue-50,
+.dark-theme .bg-green-50 {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.dark-theme .text-gray-700,
+.dark-theme .text-gray-800,
+.dark-theme .text-gray-900 {
+  color: #e0e0e0 !important;
+}
+
+.dark-theme .text-gray-500,
+.dark-theme .text-gray-600 {
+  color: #a0a0a0 !important;
+}
+
+.dark-theme .border-gray-200,
+.dark-theme .border-gray-300 {
+  border-color: #333333 !important;
+}
+
+.dark-theme .hover\:bg-gray-50:hover,
+.dark-theme .hover\:bg-gray-100:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* ダークモード時のフォーム要素 */
+.dark-theme input:not([type="checkbox"]):not([type="radio"]),
+.dark-theme select,
+.dark-theme textarea {
+  background-color: #2a2a2a !important;
+  color: #e0e0e0 !important;
+  border-color: #444444 !important;
+}
+
+.dark-theme input:disabled,
+.dark-theme select:disabled,
+.dark-theme textarea:disabled {
+  background-color: #252525 !important;
+  color: #888888 !important;
+}
+
+/* ダークモード時のボタン */
+.dark-theme .bg-blue-50 {
+  background-color: rgba(59, 130, 246, 0.15) !important;
+}
+
+.dark-theme .text-blue-600 {
+  color: #60a5fa !important;
+}
+
+.dark-theme .border-blue-500 {
+  border-color: #3b82f6 !important;
 } 

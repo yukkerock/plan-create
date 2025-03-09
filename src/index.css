@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ダークモード用のスタイル */
+.dark-mode,
+.dark-theme {
+  color-scheme: dark;
+}
+
 /* 印刷用スタイル */
 @media print {
   /* 印刷時に不要な要素を非表示 */

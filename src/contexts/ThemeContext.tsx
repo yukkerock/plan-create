@@ -40,6 +40,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     const applyTheme = () => {
       const root = window.document.documentElement;
+      const body = window.document.body;
       
       // 以前のテーマクラスをすべて削除
       root.classList.remove('light-theme', 'dark-theme');
@@ -55,7 +56,20 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       root.classList.add(`${effectiveTheme}-theme`);
       
       // ダークモードフラグを設定
-      setIsDarkMode(effectiveTheme === 'dark');
+      const isDark = effectiveTheme === 'dark';
+      setIsDarkMode(isDark);
+      
+      // データ属性も設定（Tailwind DarkModeプラグイン用）
+      if (isDark) {
+        root.setAttribute('data-theme', 'dark');
+        body.classList.add('dark-mode');
+      } else {
+        root.setAttribute('data-theme', 'light');
+        body.classList.remove('dark-mode');
+      }
+      
+      // コンソールにテーマ情報を出力（デバッグ用）
+      console.log(`Theme applied: ${effectiveTheme}-theme, isDarkMode: ${isDark}`);
     };
     
     applyTheme();
@@ -81,6 +95,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     
     // 文字サイズクラスを適用
     root.classList.add(`text-${fontSize}`);
+    
+    // コンソールに文字サイズ情報を出力（デバッグ用）
+    console.log(`Font size applied: text-${fontSize}`);
   }, [fontSize]);
 
   // 設定を変更する関数
