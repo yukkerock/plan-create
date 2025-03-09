@@ -1,7 +1,12 @@
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 
-// APIキーを設定
-const API_KEY = 'AIzaSyDjf8_ZvX9QzBJkUO-EZ9VNfS74uu83NGs';
+// APIキーを環境変数から取得
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
+
+// APIキーが設定されていない場合の警告
+if (!API_KEY) {
+  console.warn('Gemini APIキーが設定されていません。環境変数 VITE_GEMINI_API_KEY を設定してください。');
+}
 
 // Gemini APIのモデル名
 const MODEL_NAME = 'gemini-1.5-pro';
