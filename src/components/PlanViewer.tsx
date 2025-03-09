@@ -56,12 +56,12 @@ const PlanViewer: React.FC<PlanViewerProps> = ({ plan, onClose }) => {
   // 訪問種別の表示テキストを取得する関数
   const getVisitTypeText = (visitType: string) => {
     switch (visitType) {
-      case 'home':
-        return '訪問';
-      case 'outpatient':
-        return '通所';
+      case 'nurse':
+        return '看護師のみ';
+      case 'rehab':
+        return 'リハビリ職員のみ';
       case 'both':
-        return '訪問・通所併用';
+        return '両方';
       default:
         return '不明';
     }

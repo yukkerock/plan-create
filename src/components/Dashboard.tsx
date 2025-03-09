@@ -1,21 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from './ui/Card';
-import { FileText, Users, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
+import { FileText, Users, Clock, CheckCircle, AlertTriangle, Info, Bell } from 'lucide-react';
 import { getPatients } from '../services/patientService';
 import { getPatientsNeedingPlans, getCarePlansByPatient } from '../services/carePlanService';
-import { DEMO_MODE } from '../lib/supabase';
+import { DEMO_MODE, PARTIAL_DEMO_MODE } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
 const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     patientCount: 0,
     completedPlansCount: 0,
-    needingPlansCount: 0,
-    weeklyVisitsCount: 32 // 仮の値
+    needingPlansCount: 0
   });
   const [recentPatients, setRecentPatients] = useState<any[]>([]);
   const [recentPlans, setRecentPlans] = useState<any[]>([]);
   const [patientsNeedingPlans, setPatientsNeedingPlans] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const { user } = useAuth();
 
   // 現在の日付を取得
   const currentDate = new Date();
@@ -64,8 +66,7 @@ const Dashboard: React.FC = () => {
         setStats({
           patientCount: patientsData.length,
           completedPlansCount,
-          needingPlansCount: needingPlansData.length,
-          weeklyVisitsCount: 32 // 仮の値
+          needingPlansCount: needingPlansData.length
         });
         
         // 最近の患者を設定
@@ -90,9 +91,57 @@ const Dashboard: React.FC = () => {
           };
         }));
         
+        // お知らせを設定
+        const notificationsData = [];
+        
+        // 月末が近い場合のお知らせ
+        if (daysLeft <= 7) {
+          notificationsData.push({
+            id: 'month-end',
+            type: 'warning',
+            title: '月末が近づいています',
+            message: `今月の計画書作成期限まであと${daysLeft}日です。未作成の計画書を確認してください。`,
+            icon: <Clock size={18} className="text-amber-600" />,
+            bgColor: 'bg-amber-50'
+          });
+        }
+        
+        // 未作成計画書のお知らせ
+        if (needingPlansData.length > 0) {
+          notificationsData.push({
+            id: 'needing-plans',
+            type: 'alert',
+            title: '未作成の計画書があります',
+            message: `${needingPlansData.length}人の患者の今月の計画書が未作成です。`,
+            icon: <AlertTriangle size={18} className="text-red-600" />,
+            bgColor: 'bg-red-50'
+          });
+        }
+        
+        // システム情報のお知らせ
+        notificationsData.push({
+          id: 'system-update',
+          type: 'info',
+          title: 'Gemini API連携機能が追加されました',
+          message: '計画書作成時にAIによる自動生成機能が利用できるようになりました。',
+          icon: <Info size={18} className="text-blue-600" />,
+          bgColor: 'bg-blue-50'
+        });
+        
+        // 新機能のお知らせ
+        notificationsData.push({
+          id: 'new-feature',
+          type: 'success',
+          title: '計画書のPDF出力機能が追加されました',
+          message: '計画書詳細画面からPDFとして保存できるようになりました。',
+          icon: <Bell size={18} className="text-green-600" />,
+          bgColor: 'bg-green-50'
+        });
+        
+        setNotifications(notificationsData);
         setLoading(false);
       } catch (error) {
-        console.error('ダッシュボードデータ取得エラー:', error);
+        console.error('ホームデータ取得エラー:', error);
         setLoading(false);
       }
     };
@@ -103,7 +152,7 @@ const Dashboard: React.FC = () => {
   if (loading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold">ダッシュボード</h1>
+        <h1 className="text-2xl font-bold">ホーム</h1>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
@@ -116,7 +165,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">ダッシュボード</h1>
+      <h1 className="text-2xl font-bold">ホーム</h1>
       
       {DEMO_MODE && (
         <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-md mb-4">
@@ -128,7 +177,10 @@ const Dashboard: React.FC = () => {
             </div>
             <div className="ml-3">
               <p className="text-sm text-blue-700">
-                デモモードで動作しています。データはローカルのみで保存され、サーバーには送信されません。
+                {PARTIAL_DEMO_MODE 
+                  ? 'デモモード（部分的）で動作しています。認証情報は実際のものですが、一部のデータはデモ用です。'
+                  : 'デモモードで動作しています。データはローカルのみで保存され、サーバーには送信されません。'
+                }
               </p>
             </div>
           </div>
@@ -153,7 +205,7 @@ const Dashboard: React.FC = () => {
       )}
       
       {/* 統計カード */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
@@ -179,15 +231,6 @@ const Dashboard: React.FC = () => {
               <p className="text-2xl font-bold mt-1">{stats.needingPlansCount}</p>
             </div>
             <div><AlertTriangle size={24} className="text-red-500" /></div>
-          </div>
-        </Card>
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-500">今週の訪問</p>
-              <p className="text-2xl font-bold mt-1">{stats.weeklyVisitsCount}</p>
-            </div>
-            <div><CheckCircle size={24} className="text-purple-500" /></div>
           </div>
         </Card>
       </div>
@@ -292,25 +335,18 @@ const Dashboard: React.FC = () => {
       {/* 通知セクション */}
       <Card className="p-4">
         <h2 className="font-medium mb-3">お知らせ</h2>
-        <div className="space-y-2">
-          <div className="flex items-start space-x-3 p-3 bg-blue-50 rounded-md">
-            <div className="flex-shrink-0 mt-0.5">
-              <Clock size={18} className="text-blue-600" />
+        <div className="space-y-3">
+          {notifications.map((notification) => (
+            <div key={notification.id} className={`flex items-start space-x-3 p-3 ${notification.bgColor} rounded-md`}>
+              <div className="flex-shrink-0 mt-0.5">
+                {notification.icon}
+              </div>
+              <div>
+                <p className="text-sm font-medium">{notification.title}</p>
+                <p className="text-sm text-gray-600">{notification.message}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-medium">計画書の更新時期が近づいています</p>
-              <p className="text-sm text-gray-600">鈴木花子さんの計画書は5日以内に更新が必要です。</p>
-            </div>
-          </div>
-          <div className="flex items-start space-x-3 p-3 bg-green-50 rounded-md">
-            <div className="flex-shrink-0 mt-0.5">
-              <CheckCircle size={18} className="text-green-600" />
-            </div>
-            <div>
-              <p className="text-sm font-medium">システムアップデートのお知らせ</p>
-              <p className="text-sm text-gray-600">2025年4月15日にシステムのアップデートが予定されています。</p>
-            </div>
-          </div>
+          ))}
         </div>
       </Card>
     </div>
